@@ -19,6 +19,7 @@ type Field struct {
 	Len      int
 	Order    binary.ByteOrder
 	Sizeof   []int
+	Offsetof int
 	Sizefrom []int
 	Fields   Fields
 	kind     reflect.Kind
@@ -38,6 +39,9 @@ func (f *Field) String() string {
 	}
 	if f.Sizeof != nil {
 		out += fmt.Sprintf(", sizeof: %v", f.Sizeof)
+	}
+	if f.Offsetof >= 0 {
+		out += fmt.Sprintf(", offsetof: %d", f.Offsetof)
 	}
 	return "{" + out + "}"
 }

@@ -72,6 +72,10 @@ type Example struct {
 
 	CustomTypeSize    Int3   `struc:"sizeof=CustomTypeSizeArr"` // 00 00 00 04
 	CustomTypeSizeArr []byte // "ABCD"
+
+	OffsetTestDataOffset uint16 `struc:"offsetof=OffsetTestData"`
+	OffsetTestDataSize   uint16 `struct:"sizeof=OffsetTestData"`
+	OffsetTestData       []byte
 }
 
 var five = 5
@@ -172,6 +176,10 @@ var reference = &Example{
 	6, []Nested{{3}, {4}, {5}, {6}, {7}, {8}},
 	0,
 	Int3(4), []byte("ABCD"),
+
+	186,
+	8,
+	[]byte("12345678"),
 }
 
 var referenceBytes = []byte{
@@ -211,6 +219,10 @@ var referenceBytes = []byte{
 	3, 4, 5, 6, 7, 8, // [Nested{3}, ...Nested{8}]
 
 	0, 0, 4, 'A', 'B', 'C', 'D', // Int3(4), []byte("ABCD")
+
+	0, 0xba, // offset is 186
+	0, 0x08, // big-endian uint16(8) sizeof=OffsetTestData,
+	'1', '2', '3', '4', '5', '6', '7', '8',
 }
 
 func TestCodec(t *testing.T) {

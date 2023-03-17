@@ -40,6 +40,16 @@ func TestBadSizeof(t *testing.T) {
 	}
 }
 
+type badOffsetof struct {
+	Size int `struc:"offsetof=Bad"`
+}
+
+func TestBadOffsetof(t *testing.T) {
+	if err := parseTest(&badOffsetof{}); err == nil {
+		t.Fatal("failed to error on missing Offsetof target")
+	}
+}
+
 type missingSize struct {
 	Test []byte
 }

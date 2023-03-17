@@ -28,6 +28,10 @@ func (c customFallback) Sizeof(val reflect.Value, opt *Options) int {
 	return c.custom.Size(opt)
 }
 
+func (c customFallback) OffsetOf(val reflect.Value, opt *Options, index int) int {
+	return -1
+}
+
 func (c customFallback) String() string {
 	return c.custom.String()
 }

@@ -19,6 +19,7 @@ type strucTag struct {
 	Sizeof   string
 	Skip     bool
 	Sizefrom string
+	Offsetof string
 }
 
 func parseStrucTag(tag reflect.StructTag) *strucTag {
@@ -45,6 +46,9 @@ func parseStrucTag(tag reflect.StructTag) *strucTag {
 			t.Order = binary.LittleEndian
 		} else if s == "skip" {
 			t.Skip = true
+		} else if strings.HasPrefix(s, "offsetof=") {
+			tmp := strings.SplitN(s, "=", 2)
+			t.Offsetof = tmp[1]
 		} else {
 			t.Type = s
 		}
@@ -143,12 +147,21 @@ func parseFieldsLocked(v reflect.Value) (Fields, error) {
 			continue
 		}
 		f.Index = i
+		f.Offsetof = -1
 		if tag.Sizeof != "" {
 			target, ok := t.FieldByName(tag.Sizeof)
 			if !ok {
 				return nil, fmt.Errorf("struc: `sizeof=%s` field does not exist", tag.Sizeof)
 			}
 			f.Sizeof = target.Index
+			sizeofMap[tag.Sizeof] = field.Index
+		}
+		if tag.Offsetof != "" {
+			target, ok := t.FieldByName(tag.Offsetof)
+			if !ok {
+				return nil, fmt.Errorf("struc: `offsetof=%s` field does not exist", tag.Sizeof)
+			}
+			f.Offsetof = target.Index[0]
 			sizeofMap[tag.Sizeof] = field.Index
 		}
 		if sizefrom, ok := sizeofMap[field.Name]; ok {

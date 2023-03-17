@@ -33,6 +33,10 @@ func (b binaryFallback) Sizeof(val reflect.Value, options *Options) int {
 	return binary.Size(val.Interface())
 }
 
+func (b binaryFallback) OffsetOf(val reflect.Value, options *Options, index int) int {
+	return -1
+}
+
 func (b binaryFallback) Pack(buf []byte, val reflect.Value, options *Options) (int, error) {
 	tmp := byteWriter{buf: buf}
 	var order binary.ByteOrder = binary.BigEndian

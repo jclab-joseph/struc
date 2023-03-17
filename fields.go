@@ -60,6 +60,17 @@ func (f Fields) sizefrom(val reflect.Value, index []int) int {
 	}
 }
 
+func (f Fields) OffsetOf(val reflect.Value, options *Options, index int) int {
+	pos := 0
+	for i := 0; i < index; i++ {
+		field := f[i]
+		if field != nil {
+			pos += field.Size(val.Field(i), options)
+		}
+	}
+	return pos
+}
+
 func (f Fields) Pack(buf []byte, val reflect.Value, options *Options) (int, error) {
 	for val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -91,6 +102,22 @@ func (f Fields) Pack(buf []byte, val reflect.Value, options *Options) (int, erro
 				v.SetUint(uint64(length))
 			default:
 				panic(fmt.Sprintf("sizeof field is not int or uint type: %s, %s", field.Name, v.Type()))
+			}
+		}
+		if field.Offsetof >= 0 {
+			length := f.OffsetOf(val, options, field.Offsetof)
+			switch field.kind {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				// allocating a new int here has fewer side effects (doesn't update the original struct)
+				// but it's a wasteful allocation
+				// the old method might work if we just cast the temporary int/uint to the target type
+				v = reflect.New(v.Type()).Elem()
+				v.SetInt(int64(length))
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				v = reflect.New(v.Type()).Elem()
+				v.SetUint(uint64(length))
+			default:
+				panic(fmt.Sprintf("offsetof field is not int or uint type: %s, %s", field.Name, v.Type()))
 			}
 		}
 		if n, err := field.Pack(buf[pos:], v, length, options); err != nil {
