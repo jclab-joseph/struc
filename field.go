@@ -16,7 +16,7 @@ type Field struct {
 	defType  Type
 	Array    bool
 	Slice    bool
-	Len      int
+	Len      int // -1 is invalid, -2 is footer size
 	Order    binary.ByteOrder
 	Sizeof   []int
 	Offsetof int

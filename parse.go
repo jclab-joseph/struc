@@ -123,7 +123,7 @@ func parseField(f reflect.StructField) (fd *Field, tag *strucTag, err error) {
 	return
 }
 
-func parseFieldsLocked(v reflect.Value) (Fields, error) {
+func parseFieldsLocked(v reflect.Value, options *Options) (Fields, error) {
 	// we need to repeat this logic because parseFields() below can't be recursively called due to locking
 	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -132,9 +132,13 @@ func parseFieldsLocked(v reflect.Value) (Fields, error) {
 	if v.NumField() < 1 {
 		return nil, errors.New("struc: Struct has no fields.")
 	}
+
+	allowFooter := (options != nil) && options.AllowFooter
+
 	sizeofMap := make(map[string][]int)
 	fields := make(Fields, v.NumField())
 	for i := 0; i < t.NumField(); i++ {
+		isFooter := ((i + 1) == t.NumField()) && allowFooter
 		field := t.Field(i)
 		f, tag, err := parseField(field)
 		if tag.Skip {
@@ -175,7 +179,11 @@ func parseFieldsLocked(v reflect.Value) (Fields, error) {
 			f.Sizefrom = source.Index
 		}
 		if f.Len == -1 && f.Sizefrom == nil {
-			return nil, fmt.Errorf("struc: field `%s` is a slice with no length or sizeof field", field.Name)
+			if isFooter {
+				f.Len = -2
+			} else {
+				return nil, fmt.Errorf("struc: field `%s` is a slice with no length or sizeof field", field.Name)
+			}
 		}
 		// recurse into nested structs
 		// TODO: handle loops (probably by indirecting the []Field and putting pointer in cache)
@@ -187,7 +195,7 @@ func parseFieldsLocked(v reflect.Value) (Fields, error) {
 			if f.Slice {
 				typ = typ.Elem()
 			}
-			f.Fields, err = parseFieldsLocked(reflect.New(typ))
+			f.Fields, err = parseFieldsLocked(reflect.New(typ), options)
 			if err != nil {
 				return nil, err
 			}
@@ -210,7 +218,7 @@ func fieldCacheLookup(t reflect.Type) Fields {
 	return nil
 }
 
-func parseFields(v reflect.Value) (Fields, error) {
+func parseFields(v reflect.Value, options *Options) (Fields, error) {
 	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -232,7 +240,7 @@ func parseFields(v reflect.Value) (Fields, error) {
 	}
 
 	// no luck, time to parse and fill the cache ourselves
-	fields, err := parseFieldsLocked(v)
+	fields, err := parseFieldsLocked(v, options)
 	if err != nil {
 		return nil, err
 	}

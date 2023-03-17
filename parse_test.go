@@ -7,7 +7,7 @@ import (
 )
 
 func parseTest(data interface{}) error {
-	_, err := parseFields(reflect.ValueOf(data))
+	_, err := parseFields(reflect.ValueOf(data), nil)
 	return err
 }
 

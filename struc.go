@@ -8,9 +8,10 @@ import (
 )
 
 type Options struct {
-	ByteAlign int
-	PtrSize   int
-	Order     binary.ByteOrder
+	ByteAlign   int
+	PtrSize     int
+	Order       binary.ByteOrder
+	AllowFooter bool
 }
 
 func (o *Options) Validate() error {
@@ -33,7 +34,7 @@ func init() {
 	emptyOptions.Validate()
 }
 
-func prep(data interface{}) (reflect.Value, Packer, error) {
+func prep(data interface{}, options *Options) (reflect.Value, Packer, error) {
 	value := reflect.ValueOf(data)
 	for value.Kind() == reflect.Ptr {
 		next := value.Elem().Kind()
@@ -45,7 +46,7 @@ func prep(data interface{}) (reflect.Value, Packer, error) {
 	}
 	switch value.Kind() {
 	case reflect.Struct:
-		fields, err := parseFields(value)
+		fields, err := parseFields(value, options)
 		return value, fields, err
 	default:
 		if !value.IsValid() {
@@ -69,7 +70,7 @@ func PackWithOptions(w io.Writer, data interface{}, options *Options) error {
 	if err := options.Validate(); err != nil {
 		return err
 	}
-	val, packer, err := prep(data)
+	val, packer, err := prep(data, options)
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func UnpackWithOptions(r io.Reader, data interface{}, options *Options) error {
 	if err := options.Validate(); err != nil {
 		return err
 	}
-	val, packer, err := prep(data)
+	val, packer, err := prep(data, options)
 	if err != nil {
 		return err
 	}
@@ -114,7 +115,7 @@ func SizeofWithOptions(data interface{}, options *Options) (int, error) {
 	if err := options.Validate(); err != nil {
 		return 0, err
 	}
-	val, packer, err := prep(data)
+	val, packer, err := prep(data, options)
 	if err != nil {
 		return 0, err
 	}

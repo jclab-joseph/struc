@@ -76,6 +76,9 @@ type Example struct {
 	OffsetTestDataOffset uint16 `struc:"offsetof=OffsetTestData"`
 	OffsetTestDataSize   uint16 `struct:"sizeof=OffsetTestData"`
 	OffsetTestData       []byte
+
+	FooterOffset uint16 `struc:"offsetof=Footer"`
+	Footer       []byte
 }
 
 var five = 5
@@ -180,6 +183,9 @@ var reference = &Example{
 	186,
 	8,
 	[]byte("12345678"),
+
+	196,
+	[]byte("1234"),
 }
 
 var referenceBytes = []byte{
@@ -223,15 +229,24 @@ var referenceBytes = []byte{
 	0, 0xba, // offset is 186
 	0, 0x08, // big-endian uint16(8) sizeof=OffsetTestData,
 	'1', '2', '3', '4', '5', '6', '7', '8',
+
+	0, 0xc4,
+	'1', '2', '3', '4',
+}
+
+func allowFooterOptions() *Options {
+	return &Options{
+		AllowFooter: true,
+	}
 }
 
 func TestCodec(t *testing.T) {
 	var buf bytes.Buffer
-	if err := Pack(&buf, reference); err != nil {
+	if err := PackWithOptions(&buf, reference, allowFooterOptions()); err != nil {
 		t.Fatal(err)
 	}
 	out := &Example{}
-	if err := Unpack(&buf, out); err != nil {
+	if err := UnpackWithOptions(&buf, out, allowFooterOptions()); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(reference, out) {
@@ -242,7 +257,7 @@ func TestCodec(t *testing.T) {
 
 func TestEncode(t *testing.T) {
 	var buf bytes.Buffer
-	if err := Pack(&buf, reference); err != nil {
+	if err := PackWithOptions(&buf, reference, allowFooterOptions()); err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(buf.Bytes(), referenceBytes) {
@@ -254,7 +269,7 @@ func TestEncode(t *testing.T) {
 func TestDecode(t *testing.T) {
 	buf := bytes.NewReader(referenceBytes)
 	out := &Example{}
-	if err := Unpack(buf, out); err != nil {
+	if err := UnpackWithOptions(buf, out, allowFooterOptions()); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(reference, out) {
@@ -264,7 +279,7 @@ func TestDecode(t *testing.T) {
 }
 
 func TestSizeof(t *testing.T) {
-	size, err := Sizeof(reference)
+	size, err := SizeofWithOptions(reference, allowFooterOptions())
 	if err != nil {
 		t.Fatal(err)
 	}

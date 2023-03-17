@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"reflect"
 	"strings"
 )
@@ -155,7 +156,7 @@ func (f Fields) Unpack(r io.Reader, val reflect.Value, options *Options) error {
 				}
 				for i := 0; i < length; i++ {
 					v := vals.Index(i)
-					fields, err := parseFields(v)
+					fields, err := parseFields(v, options)
 					if err != nil {
 						return err
 					}
@@ -168,7 +169,7 @@ func (f Fields) Unpack(r io.Reader, val reflect.Value, options *Options) error {
 				}
 			} else {
 				// TODO: DRY (we repeat the inner loop above)
-				fields, err := parseFields(v)
+				fields, err := parseFields(v, options)
 				if err != nil {
 					return err
 				}
@@ -184,14 +185,25 @@ func (f Fields) Unpack(r io.Reader, val reflect.Value, options *Options) error {
 					return err
 				}
 			} else {
-				size := length * field.Type.Resolve(options).Size()
-				if size < 8 {
-					buf = tmp[:size]
+				var size int
+				if length == -2 {
+					var err error
+					buf, err = ioutil.ReadAll(r)
+					if err != nil {
+						return err
+					}
+					size = len(buf)
+					length = size
 				} else {
-					buf = make([]byte, size)
-				}
-				if _, err := io.ReadFull(r, buf); err != nil {
-					return err
+					size = length * field.Type.Resolve(options).Size()
+					if size < 8 {
+						buf = tmp[:size]
+					} else {
+						buf = make([]byte, size)
+					}
+					if _, err := io.ReadFull(r, buf); err != nil {
+						return err
+					}
 				}
 				err := field.Unpack(buf[:size], v, length, options)
 				if err != nil {

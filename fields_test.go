@@ -9,13 +9,13 @@ import (
 var refVal = reflect.ValueOf(reference)
 
 func TestFieldsParse(t *testing.T) {
-	if _, err := parseFields(refVal); err != nil {
+	if _, err := parseFields(refVal, allowFooterOptions()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestFieldsString(t *testing.T) {
-	fields, _ := parseFields(refVal)
+	fields, _ := parseFields(refVal, nil)
 	fields.String()
 }
 
